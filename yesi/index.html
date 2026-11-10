@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="id">
+<base target="_top">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reminder Masa Aktif Nomor</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<?!= include('styles'); ?>
+</head>
+<body>
+<aside class="sidenav" id="sidenav">
+  <div class="sn-head">
+    <span class="sn-logo"><i class="bi bi-broadcast-pin"></i></span>
+    <div class="sn-judul">Reminder Masa Aktif Nomor</div>
+    <button class="sn-collapse" id="btnSide" type="button" onclick="toggleSidenav()" title="Sembunyikan nama menu"><i class="bi bi-chevron-left"></i></button>
+  </div>
+  <div class="sn-scroll">
+    <div class="sn-group">
+      <div class="sn-title">Utama</div>
+      <button class="sn-item active" data-tab="dash" title="Ringkasan" onclick="gantiTab('dash')"><i class="bi bi-grid-1x2"></i><span>Ringkasan</span></button>
+    </div>
+    <div class="sn-group">
+      <div class="sn-title">Data</div>
+        <button class="sn-item" data-tab="nomor" title="Semua nomor" onclick="gantiTab('nomor')"><i class="bi bi-list-ul"></i><span>Semua nomor</span><span class="badge bg-secondary sn-count" id="nomorTabCount">0</span></button>
+        <button class="sn-item" data-tab="sehat" title="Kualitas data" onclick="gantiTab('sehat')"><i class="bi bi-heart-pulse"></i><span>Kualitas data</span><span class="badge bg-secondary sn-count" id="sehatCount">0</span></button>
+      </div>
+  </div>
+</aside>
+<div class="wrap">
+  <header class="appbar">
+    <div class="appclock">
+      <span class="ac-tgl" id="hariIni">memuat tanggal...</span>
+      <span class="ac-tgl" id="jamHidup">memuat jam...</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-primary" onclick="bukaForm()"><i class="bi bi-plus-lg"></i> Tambah Nomor</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="muatPengaturan()"><i class="bi bi-sliders"></i> Pengaturan</button>
+    </div>
+  </header>
+
+    <main class="sn-main">
+
+  <div id="alertBox"></div>
+
+  <div class="tk-bar" id="ticker" style="display:none"><div class="tk-in" id="tickerTrack"></div></div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="tab-dash">
+    <section class="page-intro">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Hari ini</div>
+        <h1>Ringkasan</h1>
+        <p id="ringkasTotal">Memuat...</p>
+      </div>
+      <div class="intro-note"><i class="bi bi-shield-check"></i><span>Pemantauan masa aktif nomor</span></div>
+    </section>
+    <div class="row g-2 mb-3" id="tiles"></div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-lg-8">
+        <div class="card-modern" id="tkCard" style="display:none">
+          <div class="card-h"><span class="fw-semibold"><i class="bi bi-bell-fill"></i> Perlu Diurus</span><span class="small text-muted">nomor yang paling dekat habis</span></div>
+          <div class="tk-list" id="tkList"></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card-modern" id="sebaranCard">
+          <div class="card-h"><span class="fw-semibold"><i class="bi bi-calendar-week"></i> Sebaran jatuh tempo</span></div>
+          <div class="sb-body" id="sebaranBody"><div class="empty">Memuat...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-modern mb-3">
+      <div class="card-h flt-h">
+        <div class="flt-row">
+          <input id="cari" class="form-control form-control-sm flt-cari" placeholder="cari nomor / PJ..." oninput="renderList()">
+          <select id="fOperator" class="form-select form-select-sm" onchange="renderList()"><option value="">Semua operator</option></select>
+          <select id="fStatus" class="form-select form-select-sm" onchange="renderList()">
+            <option value="">Semua status</option><option value="aman">Aman</option><option value="segera">Segera</option>
+            <option value="kritis">Kritis</option><option value="belum">Belum diisi</option>
+          </select>
+          <select id="fRange" class="form-select form-select-sm" onchange="renderList()">
+            <option value="">Semua jatuh tempo</option><option value="7">Habis ≤ 7 hari</option>
+            <option value="30">Habis ≤ 30 hari</option><option value="90">Habis ≤ 90 hari</option>
+          </select>
+        </div>
+      </div>
+      <div id="listArea"></div>
+    </div>
+  </div>
+
+  <!-- ===== SEMUA NOMOR ===== -->
+  <div id="tab-nomor" style="display:none">
+    <section class="page-intro">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Kelola data</div>
+        <h1>Semua nomor dipantau</h1>
+        <p id="nomorIntro">Memuat...</p>
+      </div>
+      <div class="intro-note"><i class="bi bi-arrow-down-up"></i><span>Klik judul kolom buat ngurutin</span></div>
+    </section>
+    <div class="card-modern mb-3">
+      <div class="flt-satu">
+        <input id="sCari" class="form-control form-control-sm" placeholder="cari nomor / PJ..." oninput="renderSehatDaftar()">
+        <select id="sOperator" class="form-select form-select-sm" onchange="renderSehatDaftar()"><option value="">Semua operator</option></select>
+        <select id="sStatus" class="form-select form-select-sm" onchange="renderSehatDaftar()">
+          <option value="">Semua status</option><option value="aman">Aman</option><option value="segera">Segera</option>
+          <option value="kritis">Kritis</option><option value="belum">Belum diisi</option>
+        </select>
+        <select id="sRange" class="form-select form-select-sm" onchange="renderSehatDaftar()">
+          <option value="">Semua jatuh tempo</option><option value="7">Habis ≤ 7 hari</option>
+          <option value="30">Habis ≤ 30 hari</option><option value="90">Habis ≤ 90 hari</option>
+        </select>
+        <select id="sTindak" class="form-select form-select-sm" onchange="renderSehatDaftar()">
+          <option value="">Semua tindak lanjut</option><option value="perlu">Perlu ditindak</option>
+          <option value="proses">Sedang diurus</option><option value="beres">Beres</option><option value="-">Belum ada status</option>
+        </select>
+        <select id="sLengkap" class="form-select form-select-sm" onchange="renderSehatDaftar()" title="Saring yang datanya belum lengkap">
+          <option value="">Semua kelengkapan</option><option value="tgl">Tanggal kosong</option>
+          <option value="pj">Penanggungjawab kosong</option><option value="salah1">Ada kolom yang kosong</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card-modern mb-3">
+      <div id="sehatListArea"></div>
+    </div>
+  </div>
+
+  <!-- ===== KUALITAS DATA ===== -->
+  <div id="tab-sehat" style="display:none">
+    <section class="page-intro">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Benerin data</div>
+        <h1>Kualitas data</h1>
+        <p>Temuan data yang bikin pengingat nggak jalan penuh, plus arsip nomor yang udah kedaluwarsa.</p>
+      </div>
+      <div class="intro-note"><i class="bi bi-wrench"></i><span>Perbaiki langsung dari barisnya</span></div>
+    </section>
+
+    <div class="card-modern">
+      <div class="sh-tabs">
+        <button type="button" class="sh-tab active" data-sh="temuan" onclick="sehatTab('temuan')">Temuan yang perlu dibenerin<span class="sh-n" id="sehatN">0</span></button>
+        <button type="button" class="sh-tab" data-sh="kadaluarsa" onclick="sehatTab('kadaluarsa')">Nomor kedaluwarsa<span class="sh-n" id="hangusCount">0</span></button>
+      </div>
+
+      <div class="sh-pane on" data-sh="temuan">
+        <div class="d-flex justify-content-end px-3 pt-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="muatSehat()"><i class="bi bi-arrow-clockwise"></i> Cek ulang</button>
+        </div>
+        <div class="p-3 pt-1">
+          <div class="row g-2 mb-2" id="sehatTiles"></div>
+          <div id="sehatArea"><div class="empty">Memuat...</div></div>
+        </div>
+      </div>
+
+      <div class="sh-pane" data-sh="kadaluarsa">
+        <div class="p-3 pb-2">
+          <input id="cariHangus" class="form-control form-control-sm" placeholder="cari nomor / PJ..." oninput="renderHangus()">
+        </div>
+        <div class="px-3 pb-2 small text-muted">Masa aktif nomor di bawah ini udah lewat dan nggak diingetin lagi. Mau dipantau lagi? Klik ikon pensil di barisnya, lalu isi tanggal masa aktif yang baru.</div>
+        <div id="hangusArea"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bulkBar" class="bulk-bar" style="display:none">
+    <span><b id="bulkCount">0</b> nomor dipilih</span>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-primary" onclick="bukaBulkEdit()"><i class="bi bi-pencil-square"></i> Edit massal</button>
+      <button class="btn btn-sm btn-outline-success" onclick="bulkTindak('beres')"><i class="bi bi-check2-all"></i> Tandai beres</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="bulkTindak('proses')">Sedang diurus</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="bulkHapus()"><i class="bi bi-trash"></i> Hapus</button>
+      <button class="btn btn-sm btn-link" onclick="pilihSemua(false)">Batal</button>
+    </div>
+  </div>
+    </main>
+  </div><!-- /wrap -->
+
+<!-- Modal form tambah/edit -->
+<div class="modal fade" id="formModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title" id="formTitle">Tambah Nomor</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form id="nomorForm" onsubmit="simpanNomor(event)">
+    <div class="modal-body">
+      <input type="hidden" id="f_id">
+      <div class="f-grp">
+        <div class="f-judul">Informasi nomor</div>
+        <div class="mb-3"><label class="lbl" for="f_nomor">Nomor WhatsApp <span class="text-danger">*</span></label>
+          <input id="f_nomor" class="form-control" placeholder="contoh: 081234567890" required oninput="cekFormNomor()">
+          <div class="f-err" id="err_nomor" style="display:none"></div></div>
+        <div class="mb-0"><label class="lbl" for="f_operator">Operator</label>
+          <select id="f_operator" class="form-select">
+            <option>Telkomsel</option><option>Indosat</option><option>XL</option>
+            <option>Smartfren</option><option>Three</option><option>Axis</option>
+          </select></div>
+      </div>
+      <div class="f-grp">
+        <div class="f-judul">Informasi pemantauan</div>
+        <div class="mb-3"><label class="lbl" for="f_tgl">Tanggal batas masa aktif</label>
+          <input type="date" id="f_tgl" class="form-control" onchange="cekFormTanggal()">
+          <div class="f-bantu">Ini tanggal masa aktifnya <b>habis</b>, bukan tanggal mau diingetin. Kosongkan kalau belum tahu.</div>
+          <div class="f-err f-warn" id="err_tgl" style="display:none"></div></div>
+        <div class="mb-0"><label class="lbl" for="f_pj">Penanggungjawab</label>
+          <input id="f_pj" class="form-control" placeholder="contoh: CS LILI / Kantor Cabang Jogja"></div>
+      </div>
+      <div class="f-grp">
+        <div class="f-judul">Catatan</div>
+        <textarea id="f_catatan" class="form-control" rows="3" placeholder="contoh: 05 Okt 2026 diisi pulsa 50rb oleh Budi"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+      <button class="btn btn-primary"><i class="bi bi-check-lg"></i> Simpan</button>
+    </div>
+  </form>
+</div></div></div>
+
+<!-- Modal detail nomor -->
+<div class="modal fade" id="detailModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Detail Nomor</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body" id="detailBody"><div class="empty">Memuat...</div></div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+    <button type="button" class="btn btn-outline-danger" id="detailHapus"><i class="bi bi-trash"></i> Hapus</button>
+    <button type="button" class="btn btn-primary" id="detailEdit"><i class="bi bi-pencil"></i> Edit</button>
+  </div>
+</div></div></div>
+
+<!-- Modal catat tanggal aktif baru -->
+<div class="modal fade" id="catatModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Catat tanggal aktif baru</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <div class="mb-3"><div class="lbl">Nomor</div><div class="mono fw-semibold" id="catatNomor"></div>
+      <div class="small text-muted mt-1" id="catatLama"></div></div>
+    <div class="lbl">Hitung dari hari ini</div>
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="plusHari(30,this)">+30 hari</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="plusHari(90,this)">+90 hari</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="plusHari(180,this)">+180 hari</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="plusHari(365,this)">+1 tahun</button>
+    </div>
+    <div class="lbl">Aktif sampai</div>
+    <input type="date" id="d_tglBaru" class="form-control">
+    <div class="small text-muted mt-2">Tanggal baru ikut ngitung sisa hari lagi, jadi nomornya balik terpantau. Jejak pencatatannya masuk ke kolom Catatan.</div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+    <button type="button" class="btn btn-success" onclick="tandaiDiisi(this)"><i class="bi bi-check2-circle"></i> Simpan tanggal baru</button>
+  </div>
+</div></div></div>
+
+<!-- Modal pengaturan (dikembalikan: tidak jadi halaman, cukup modal kecil) -->
+<div class="modal fade" id="pengModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Pengaturan</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form id="pengForm" onsubmit="simpanPengaturan(event)">
+    <div class="modal-body">
+      <div class="small text-muted mb-1">Backup harian ke Google Drive</div>
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" id="p_backupOn">
+        <label class="form-check-label small" for="p_backupOn">Simpan salinan data tiap hari</label>
+      </div>
+      <div id="backupLast" class="small text-muted"></div>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button type="button" class="btn btn-sm btn-outline-success" id="btnBackupDrive" onclick="backupDrive()"><i class="bi bi-cloud-arrow-up"></i> Backup ke Drive</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="unduhBackup()"><i class="bi bi-hdd"></i> Unduh Backup JSON</button>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="unduhCsv(this)"><i class="bi bi-file-earmark-excel"></i> Unduh Excel</button>
+      </div>
+      <div class="small text-muted mt-2" id="backupInfo">Backup otomatis: belum diatur.</div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+      <button class="btn btn-primary">Simpan</button>
+    </div>
+  </form>
+</div></div></div>
+
+<!-- Modal edit massal -->
+<div class="modal fade" id="bulkModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title">Edit Massal <span id="bulkModalCount" class="badge bg-primary">0</span> nomor</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <form id="bulkForm" onsubmit="simpanBulkEdit(event)">
+    <div class="modal-body">
+      <p class="small text-muted">Isi hanya kolom yang mau diubah. Kolom yang dibiarkan kosong <b>tidak</b> akan mengubah nilai lama nomor-nomor terpilih.</p>
+      <div class="mb-3"><label class="lbl">Ganti operator</label>
+        <select id="b_operator" class="form-select">
+          <option value="">— jangan ubah —</option>
+          <option>Telkomsel</option><option>Indosat</option><option>XL</option>
+          <option>Smartfren</option><option>Three</option><option>Axis</option>
+        </select></div>
+      <div class="mb-3"><label class="lbl">Set tanggal batas aktif</label>
+        <input type="date" id="b_tgl" class="form-control"></div>
+      <div class="mb-2"><label class="lbl">Set penanggungjawab</label>
+        <input id="b_pj" class="form-control" placeholder="— kosong = jangan ubah —"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+      <button class="btn btn-primary"><i class="bi bi-check-lg"></i> Terapkan</button>
+    </div>
+  </form>
+</div></div></div>
+
+
+<!-- Modal konfirmasi bertema -->
+<div class="modal fade" id="konfirmasiModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title" id="kmmJudul"><i class="bi bi-exclamation-circle"></i> Konfirmasi</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div id="kmmPesan" class="kmm-pesan"></div></div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+    <button type="button" class="btn btn-primary" id="kmmOk">Lanjutkan</button>
+  </div>
+</div></div></div>
+
+<!-- Modal input satu baris (ganti nama kontak) -->
+<div class="modal fade" id="inputModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h6 class="modal-title" id="imJudul">Isi</h6>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <label class="lbl" id="imLabel">Nilai</label>
+    <input id="imNilai" class="form-control" autocomplete="off">
+    <div class="small text-muted mt-2" id="imBantuan"></div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+    <button type="button" class="btn btn-primary" id="imOk"><i class="bi bi-check-lg"></i> Simpan</button>
+  </div>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?!= include('app'); ?>
+</body>
+</html>

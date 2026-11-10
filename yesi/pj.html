@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+  .top { background: #4f46e5; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .top h2 { margin: 0 0 4px; font-size: 18px; }
+  .top p { margin: 0; font-size: 13px; opacity: .85; }
+  .kartu { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+  .baris1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .nomor { font-size: 17px; font-weight: 700; letter-spacing: .3px; }
+  .chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+  .chip.aman { background: #dcfce7; color: #15803d; }
+  .chip.segera { background: #ffedd5; color: #c2410c; }
+  .chip.kritis { background: #fee2e2; color: #b91c1c; }
+  .chip.hangus { background: #e2e8f0; color: #475569; }
+  .chip.belum { background: #fef9c3; color: #a16207; }
+  .chip.beres { background: #dcfce7; color: #15803d; }
+  .info { font-size: 13px; color: #475569; margin-top: 6px; }
+  .aksi { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .aksi input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+  .aksi button { padding: 9px 14px; border: 0; border-radius: 8px; background: #4f46e5; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .aksi button:disabled { background: #94a3b8; }
+  .done { font-size: 13px; color: #15803d; margin-top: 10px; font-weight: 600; }
+  .kosong { text-align: center; color: #64748b; padding: 40px 0; }
+  #toaster { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; display: none; z-index: 9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h2>Nomor Saya</h2>
+    <p id="pjNama">Memuat data...</p>
+  </div>
+  <div id="daftar"></div>
+</div>
+<div id="toaster"></div>
+<script>
+  var TOKEN = '<?= token ?>';
+  var WARNA = { aman: 'aman', segera: 'segera', kritis: 'kritis', hangus: 'hangus', belum: 'belum' };
+  var LABEL = { aman: 'Aman', segera: 'Segera', kritis: 'Kritis', hangus: 'Hangus', belum: 'Belum diisi' };
+
+  function toast(t) {
+    var el = document.getElementById('toaster');
+    el.textContent = t;
+    el.style.display = 'block';
+    setTimeout(function () { el.style.display = 'none'; }, 2500);
+  }
+
+  function formatTgl(ymd) {
+    if (!ymd) return 'belum ada tanggal';
+    var b = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    var p = ymd.split('-');
+    return Number(p[2]) + ' ' + b[Number(p[1]) - 1] + ' ' + p[0];
+  }
+
+  function render(d) {
+    document.getElementById('pjNama').textContent = d.nama + ' \u2014 ' + d.rows.length + ' nomor \u2014 per ' + formatTgl(d.hariIni);
+    var kotak = document.getElementById('daftar');
+    kotak.innerHTML = '';
+    if (!d.rows.length) {
+      kotak.innerHTML = '<div class="kartu kosong">Tidak ada nomor atas nama Anda di daftar.</div>';
+      return;
+    }
+    d.rows.forEach(function (r) {
+      var el = document.createElement('div');
+      el.className = 'kartu';
+      var chip = r.status === 'beres' ? '<span class="chip beres">Beres</span>'
+        : '<span class="chip ' + (WARNA[r.kategori] || 'belum') + '">' + (LABEL[r.kategori] || r.kategori) + '</span>';
+      var sisa = r.sisa === null ? '-' : (r.sisa >= 0 ? 'H-' + r.sisa : 'lewat ' + Math.abs(r.sisa) + ' hari');
+      var aksi = '';
+      if (r.status !== 'beres') {
+        aksi = '<div class="aksi">' +
+          '<input type="date" id="tgl-' + r.id + '">' +
+          '<button id="btn-' + r.id + '" onclick="isi(' + r.id + ')">Sudah diisi</button>' +
+          '</div>';
+      } else {
+        aksi = '<div class="done">Sudah dikonfirmasi beres.</div>';
+      }
+      el.innerHTML = '<div class="baris1"><span class="nomor">' + r.nomor + '</span>' + chip + '</div>' +
+        '<div class="info">' + (r.operator || '-') + ' &middot; batas aktif ' + formatTgl(r.tgl) + ' &middot; ' + sisa + '</div>' + aksi;
+      kotak.appendChild(el);
+    });
+  }
+
+  function muat() {
+    google.script.run
+      .withSuccessHandler(render)
+      .withFailureHandler(function (e) { toast('Gagal memuat: ' + e.message); })
+      .pjList(TOKEN);
+  }
+
+  function isi(id) {
+    var tgl = document.getElementById('tgl-' + id).value;
+    if (!tgl) { toast('Pilih dulu tanggal aktif barunya.'); return; }
+    var btn = document.getElementById('btn-' + id);
+    btn.disabled = true;
+    btn.textContent = 'Menyimpan...';
+    google.script.run
+      .withSuccessHandler(function () { toast('Tersimpan, terima kasih sudah konfirmasi.'); muat(); })
+      .withFailureHandler(function (e) { btn.disabled = false; btn.textContent = 'Sudah diisi'; toast(e.message); })
+      .pjIsi(TOKEN, id, tgl);
+  }
+
+  muat();
+</script>
+</body>
+</html>
